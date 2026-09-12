@@ -1,27 +1,43 @@
-TaskAnalyzer
+# TaskAnalyzer
 
-Projeto acadêmico desenvolvido para a disciplina BootCamp III, com foco em Specification-Driven Development (SDD) e desenvolvimento assistido por Inteligência Artificial.
+Projeto acadêmico desenvolvido para a disciplina **BootCamp III**, com foco em **Specification-Driven Development (SDD)** e desenvolvimento assistido por Inteligência Artificial.
 
-O objetivo do projeto é especificar, implementar e validar um módulo capaz de analisar um conjunto de tarefas e gerar indicadores relacionados à produtividade.
+O **TaskAnalyzer** tem como objetivo analisar um conjunto de tarefas e gerar indicadores de produtividade a partir de regras previamente definidas em uma especificação funcional.
 
-Objetivo
+> Nesta etapa, o foco do projeto está na definição do contrato SDD, das regras de contexto para agentes de IA e da estrutura que será utilizada durante a implementação.
 
-O TaskAnalyzer deverá analisar tarefas recebidas em memória e gerar indicadores como:
+---
 
-tempo médio de conclusão;
+## Objetivo
 
-taxa de atraso;
+O módulo deverá analisar tarefas recebidas em memória e gerar os seguintes indicadores:
 
-quantidade de tarefas válidas;
+- tempo médio de conclusão;
+- taxa de atraso;
+- quantidade de tarefas válidas;
+- indicadores agrupados por prioridade.
 
-indicadores agrupados por prioridade.
+O sistema não deverá persistir dados em arquivos ou bancos de dados.
 
-O comportamento funcional do sistema é definido pela especificação SDD localizada em:
+---
 
-specs/task_analyzer_spec.md
+## Fonte de Verdade
 
-Estrutura do Projeto
+O comportamento funcional do TaskAnalyzer está definido em:
 
+[`specs/task_analyzer_spec.md`](./specs/task_analyzer_spec.md)
+
+As regras de governança, arquitetura, qualidade e utilização de Inteligência Artificial estão definidas em:
+
+[`CONTEXT_RULES.md`](./CONTEXT_RULES.md)
+
+Toda implementação futura deverá respeitar simultaneamente esses dois documentos.
+
+---
+
+## Estrutura do Projeto
+
+```text
 bootcamp_task_analyzer/
 ├── README.md
 ├── CONTEXT_RULES.md
@@ -31,127 +47,111 @@ bootcamp_task_analyzer/
 │   └── task_analyzer.py
 └── tests/
     └── test_task_analyzer.py
+```
 
-Responsabilidade dos arquivos
+---
 
-README.md
-Apresenta o projeto, sua finalidade e a organização do repositório.
+## Responsabilidade dos Arquivos
 
-CONTEXT_RULES.md
-Define as regras persistentes de governança, arquitetura, qualidade e utilização de Inteligência Artificial durante o desenvolvimento.
+| Arquivo / Diretório | Responsabilidade |
+|---|---|
+| `README.md` | Apresentação geral do projeto e orientação sobre o repositório. |
+| `CONTEXT_RULES.md` | Regras persistentes de governança e desenvolvimento assistido por IA. |
+| `specs/task_analyzer_spec.md` | Especificação SDD e fonte de verdade do comportamento funcional do sistema. |
+| `src/task_analyzer.py` | Arquivo destinado à implementação principal do TaskAnalyzer. |
+| `tests/test_task_analyzer.py` | Arquivo destinado aos testes automatizados derivados do contrato SDD. |
 
-specs/task_analyzer_spec.md
-Contém a especificação SDD e representa a fonte de verdade para o comportamento funcional do TaskAnalyzer.
+---
 
-src/task_analyzer.py
-Arquivo destinado à implementação do módulo TaskAnalyzer.
-
-tests/test_task_analyzer.py
-Arquivo destinado aos testes automatizados derivados dos cenários de aceite e das regras definidas na especificação.
-
-Contrato Funcional
+## Contrato Funcional
 
 A função pública principal planejada para o módulo é:
 
+```python
 def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
     ...
+```
 
-A implementação deverá seguir integralmente o contrato definido em:
-
-specs/task_analyzer_spec.md
+A implementação deverá seguir integralmente o contrato definido na especificação SDD.
 
 Entre as principais regras previstas estão:
 
-utilização apenas de tarefas válidas nos resultados;
+- somente tarefas válidas participam dos resultados;
+- somente tarefas concluídas válidas participam dos cálculos de tempo e atraso;
+- datas e horários devem respeitar as regras de UTC;
+- identificadores de tarefa devem ser únicos;
+- tarefas pendentes ou canceladas não são consideradas atrasadas;
+- tarefas inválidas ou inconsistentes são desconsideradas conforme o contrato;
+- a taxa de atraso e o tempo médio devem seguir exatamente as fórmulas especificadas;
+- os resultados devem respeitar as estruturas `AnalysisResult` e `PriorityIndicator`;
+- a ausência de tarefas concluídas válidas deve gerar `NoCompletedTasksError`.
 
-utilização apenas de tarefas concluídas válidas nos cálculos de tempo e atraso;
+---
 
-tratamento de datas em UTC;
+## Desenvolvimento Assistido por IA
 
-controle de identificadores de tarefas duplicados;
+A Inteligência Artificial será utilizada como ferramenta de apoio durante o desenvolvimento.
 
-cálculo da taxa de atraso;
+Antes de gerar ou alterar código, o agente de IA deverá consultar:
 
-cálculo do tempo médio de conclusão;
+1. [`CONTEXT_RULES.md`](./CONTEXT_RULES.md);
+2. [`specs/task_analyzer_spec.md`](./specs/task_analyzer_spec.md);
+3. os testes automatizados existentes.
 
-geração de indicadores por prioridade;
+A IA não deverá:
 
-tratamento da ausência de tarefas concluídas válidas.
+- inventar requisitos;
+- alterar regras de negócio;
+- assumir comportamentos não especificados;
+- modificar a assinatura pública sem autorização;
+- alterar testes para acomodar erros da implementação;
+- modificar a estrutura do projeto sem autorização.
 
-Desenvolvimento Assistido por IA
+A decisão final sobre qualquer implementação permanece sob responsabilidade humana.
 
-A Inteligência Artificial será utilizada como ferramenta de apoio ao desenvolvimento.
+---
 
-Todo código gerado deverá respeitar simultaneamente:
-
-CONTEXT_RULES.md;
-
-specs/task_analyzer_spec.md;
-
-os testes automatizados;
-
-o processo de homologação humana.
-
-A IA não deverá criar requisitos, alterar regras de negócio ou assumir comportamentos que não estejam definidos na especificação.
-
-Diretrizes Técnicas
+## Diretrizes Técnicas
 
 O desenvolvimento deverá seguir as seguintes diretrizes:
 
-Python 3.11 ou superior;
+- **Python 3.11+**;
+- **type hints** em funções e métodos;
+- **PEP 8**;
+- **Single Responsibility Principle (SRP)**;
+- **Google Style Docstrings**;
+- funções pequenas e coesas;
+- tratamento específico de exceções;
+- uso do módulo padrão `logging`;
+- testes automatizados com `pytest`;
+- código legível, manutenível e sem duplicação desnecessária.
 
-type hints em funções e métodos;
+---
 
-PEP 8;
+## Testes
 
-Single Responsibility Principle (SRP);
+Os testes automatizados serão implementados com `pytest` e deverão ser derivados diretamente da especificação SDD.
 
-Google Style Docstrings;
+Entre os comportamentos que deverão ser validados estão:
 
-funções pequenas e coesas;
+- processamento de entradas válidas;
+- cálculo do tempo de conclusão;
+- cálculo do tempo médio de conclusão;
+- identificação de tarefas atrasadas;
+- cálculo da taxa de atraso;
+- quantidade de tarefas válidas;
+- agrupamento por prioridade;
+- tratamento de tarefas inválidas ou inconsistentes;
+- tratamento de identificadores duplicados;
+- tratamento da ausência de tarefas concluídas válidas;
+- estrutura dos objetos de saída;
+- exceções e mensagens previstas no contrato.
 
-tratamento específico de exceções;
+---
 
-uso do módulo padrão logging;
+## Fluxo de Desenvolvimento
 
-testes automatizados com pytest;
-
-código legível e manutenível.
-
-Testes
-
-Os testes automatizados serão desenvolvidos com pytest e deverão validar, entre outros pontos:
-
-processamento de entradas válidas;
-
-cálculo do tempo de conclusão;
-
-cálculo do tempo médio de conclusão;
-
-identificação de tarefas atrasadas;
-
-cálculo da taxa de atraso;
-
-quantidade de tarefas válidas;
-
-indicadores agrupados por prioridade;
-
-tratamento de tarefas inválidas ou inconsistentes;
-
-tratamento de identificadores duplicados;
-
-tratamento da ausência de tarefas concluídas válidas;
-
-estrutura das saídas;
-
-exceções previstas no contrato.
-
-Os testes deverão ser derivados diretamente da especificação SDD.
-
-Fluxo de Desenvolvimento
-
-O desenvolvimento seguirá, de forma geral, o seguinte fluxo:
-
+```text
 Especificação SDD
         ↓
 Regras de contexto da IA
@@ -163,17 +163,22 @@ Testes automatizados
 Revisão e homologação humana
         ↓
 Versionamento no Git/GitHub
+```
 
-Todo código produzido com auxílio de Inteligência Artificial deverá passar por revisão humana antes de ser considerado aprovado e versionado.
+Todo código produzido com auxílio de Inteligência Artificial deverá passar por revisão humana antes de ser considerado aprovado.
 
-Status do Projeto
+---
 
-Fase atual: preparação da estrutura, especificação SDD e definição das regras de governança para o desenvolvimento assistido por IA.
+## Status do Projeto
 
-A implementação funcional e os testes automatizados serão desenvolvidos na etapa seguinte do projeto.
+**Etapa atual:** estruturação do repositório, definição da especificação SDD e criação das regras de governança para o desenvolvimento assistido por IA.
 
-Autor
+**Próxima etapa:** implementação do TaskAnalyzer e criação dos testes automatizados com base no contrato definido.
 
-Bruno dos Santos
-Curso: Análise e Desenvolvimento de Sistemas
-Disciplina: BootCamp III
+---
+
+## Autor
+
+**Bruno dos Santos**  
+Curso: **Análise e Desenvolvimento de Sistemas**  
+Disciplina: **BootCamp III**
