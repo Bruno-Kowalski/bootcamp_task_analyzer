@@ -212,6 +212,21 @@ Fase 1 v1.0.
 
 ---
 
+## Entregáveis da Fase 2
+
+- [Relatório técnico em Markdown](./docs/phase2_report.md)
+- [Relatório técnico em PDF](./docs/relatorio_tecnico_fase2.pdf)
+- [Evidência da execução do pytest](./docs/evidence_pytest.png)
+- [Evidência da árvore local](./docs/evidence_tree.png)
+
+Pull Request preparado para abertura:
+
+<https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/new/feature/fase1-task-analyzer>
+
+O vídeo de apresentação não está incluído neste escopo.
+
+---
+
 ## Autor
 
 **Bruno dos Santos**  
