@@ -1,4 +1,4 @@
-"""Task analysis according to the Phase 1 v1.0 specification."""
+"""Análise de tarefas conforme a especificação da Fase 1 v1.0."""
 
 from __future__ import annotations
 
@@ -9,23 +9,23 @@ import logging
 from typing import Iterable
 
 
-LOGGER = logging.getLogger(__name__)
-INVALID_TASK_DATA_MESSAGE = "Datas inválidas ou inconsistentes"
-NO_COMPLETED_TASKS_MESSAGE = (
+REGISTRADOR = logging.getLogger(__name__)
+MENSAGEM_DADOS_TAREFA_INVALIDOS = "Datas inválidas ou inconsistentes"
+MENSAGEM_NENHUMA_TAREFA_CONCLUIDA = (
     "Não existem tarefas concluídas válidas para realizar a análise."
 )
 
 
 class InvalidTaskDataError(ValueError):
-    """Raised when a task contains invalid or inconsistent date data."""
+    """Indica que uma tarefa contém datas inválidas ou inconsistentes."""
 
 
 class NoCompletedTasksError(ValueError):
-    """Raised when no valid completed task is available for analysis."""
+    """Indica que não há tarefa concluída válida para análise."""
 
 
 class Prioridade(str, Enum):
-    """Allowed task priorities."""
+    """Prioridades de tarefa permitidas."""
 
     BAIXA = "baixa"
     MEDIA = "media"
@@ -33,7 +33,7 @@ class Prioridade(str, Enum):
 
 
 class Status(str, Enum):
-    """Allowed task statuses."""
+    """Status de tarefa permitidos."""
 
     CONCLUIDA = "concluida"
     PENDENTE = "pendente"
@@ -42,7 +42,7 @@ class Status(str, Enum):
 
 @dataclass(frozen=True)
 class Task:
-    """A task to be analyzed."""
+    """Tarefa a ser analisada."""
 
     id_tarefa: int
     data_criacao: datetime
@@ -55,7 +55,7 @@ class Task:
 
 @dataclass(frozen=True)
 class PriorityIndicator:
-    """Aggregated indicators for one priority."""
+    """Indicadores consolidados de uma prioridade."""
 
     quantidade: int
     quantidade_atrasadas: int
@@ -64,7 +64,7 @@ class PriorityIndicator:
 
 @dataclass(frozen=True)
 class AnalysisResult:
-    """Aggregated indicators for a collection of tasks."""
+    """Indicadores consolidados de uma coleção de tarefas."""
 
     tempo_medio_conclusao_min: float
     taxa_atraso_percentual: float
@@ -72,8 +72,8 @@ class AnalysisResult:
     indicadores_por_prioridade: dict[str, PriorityIndicator]
 
 
-def _is_utc_datetime(value: object) -> bool:
-    """Return whether value is a timezone-aware UTC datetime."""
+def _eh_datetime_utc(value: object) -> bool:
+    """Retorna se o valor é um datetime UTC com fuso horário."""
     if not isinstance(value, datetime) or value.tzinfo is None:
         return False
     try:
@@ -82,108 +82,115 @@ def _is_utc_datetime(value: object) -> bool:
         return False
 
 
-def _validate_date_data(task: Task) -> None:
-    """Validate all applicable dates and RN04 consistency rules."""
-    dates = (task.data_criacao, task.data_inicio, task.data_conclusao, task.prazo)
-    if any(value is not None and not _is_utc_datetime(value) for value in dates):
-        raise InvalidTaskDataError(INVALID_TASK_DATA_MESSAGE)
+def _validar_dados_de_data(task: Task) -> None:
+    """Valida as datas aplicáveis e as regras de consistência da RN04."""
+    datas = (task.data_criacao, task.data_inicio, task.data_conclusao, task.prazo)
+    if any(valor is not None and not _eh_datetime_utc(valor) for valor in datas):
+        raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
 
     if task.status is Status.CONCLUIDA:
         if task.data_inicio is None or task.data_conclusao is None:
-            raise InvalidTaskDataError(INVALID_TASK_DATA_MESSAGE)
+            raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
         if task.data_conclusao < task.data_inicio:
-            raise InvalidTaskDataError(INVALID_TASK_DATA_MESSAGE)
+            raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
 
 
-def _valid_unique_tasks(tasks: list[Task]) -> list[Task]:
-    """Return valid tasks after applying date and duplicate-id rules."""
-    counts: dict[int, int] = {}
-    for task in tasks:
-        if isinstance(task, Task):
-            counts[task.id_tarefa] = counts.get(task.id_tarefa, 0) + 1
+def _tarefas_validas_sem_duplicidade(tarefas: list[Task]) -> list[Task]:
+    """Retorna tarefas válidas após regras de data e de ID duplicado."""
+    contagens: dict[int, int] = {}
+    for tarefa in tarefas:
+        if isinstance(tarefa, Task):
+            contagens[tarefa.id_tarefa] = contagens.get(tarefa.id_tarefa, 0) + 1
 
-    valid_tasks: list[Task] = []
-    for task in tasks:
-        if not isinstance(task, Task):
+    tarefas_validas: list[Task] = []
+    for tarefa in tarefas:
+        if not isinstance(tarefa, Task):
             continue
-        if not isinstance(task.id_tarefa, int) or task.id_tarefa <= 0:
+        if not isinstance(tarefa.id_tarefa, int) or tarefa.id_tarefa <= 0:
             continue
-        if not isinstance(task.prioridade, Prioridade) or not isinstance(
-            task.status, Status
+        if not isinstance(tarefa.prioridade, Prioridade) or not isinstance(
+            tarefa.status, Status
         ):
             continue
-        _validate_date_data(task)
-        if counts[task.id_tarefa] != 1:
-            LOGGER.warning("Ignoring duplicate task id %s", task.id_tarefa)
+        _validar_dados_de_data(tarefa)
+        if contagens[tarefa.id_tarefa] != 1:
+            REGISTRADOR.warning("Ignorando ID de tarefa duplicado: %s", tarefa.id_tarefa)
             continue
-        valid_tasks.append(task)
-    return valid_tasks
+        tarefas_validas.append(tarefa)
+    return tarefas_validas
 
 
-def _completion_minutes(task: Task) -> float:
-    """Calculate completion time in minutes for a completed task."""
-    assert task.data_inicio is not None
-    assert task.data_conclusao is not None
-    return (task.data_conclusao - task.data_inicio).total_seconds() / 60
+def _calcular_minutos_de_conclusao(tarefa: Task) -> float:
+    """Calcula o tempo de conclusão em minutos de uma tarefa concluída."""
+    assert tarefa.data_inicio is not None
+    assert tarefa.data_conclusao is not None
+    return (tarefa.data_conclusao - tarefa.data_inicio).total_seconds() / 60
 
 
 def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
-    """Analyze tasks and return the indicators required by the specification.
+    """Analisa tarefas e retorna os indicadores exigidos pela especificação.
 
     Args:
-        tasks: Tasks to validate and analyze.
+        tasks: Tarefas a serem validadas e analisadas.
 
     Returns:
-        Aggregated task and priority indicators.
+        Indicadores consolidados das tarefas e prioridades.
 
     Raises:
-        InvalidTaskDataError: If a task violates RN04 date rules.
-        NoCompletedTasksError: If no valid completed task remains.
+        InvalidTaskDataError: Se uma tarefa violar as regras de data da RN04.
+        NoCompletedTasksError: Se não restar nenhuma tarefa concluída válida.
     """
-    task_list = list(tasks) if isinstance(tasks, Iterable) else []
-    valid_tasks = _valid_unique_tasks(task_list)
-    completed_tasks = [
-        task for task in valid_tasks if task.status is Status.CONCLUIDA
+    lista_de_tarefas = list(tasks) if isinstance(tasks, Iterable) else []
+    tarefas_validas = _tarefas_validas_sem_duplicidade(lista_de_tarefas)
+    tarefas_concluidas = [
+        tarefa for tarefa in tarefas_validas if tarefa.status is Status.CONCLUIDA
     ]
-    if not completed_tasks:
-        LOGGER.info("No valid completed tasks available for analysis")
-        raise NoCompletedTasksError(NO_COMPLETED_TASKS_MESSAGE)
+    if not tarefas_concluidas:
+        REGISTRADOR.info("Não há tarefas concluídas válidas para análise")
+        raise NoCompletedTasksError(MENSAGEM_NENHUMA_TAREFA_CONCLUIDA)
 
-    completion_times = {
-        id(task): _completion_minutes(task) for task in completed_tasks
+    tempos_de_conclusao = {
+        id(tarefa): _calcular_minutos_de_conclusao(tarefa)
+        for tarefa in tarefas_concluidas
     }
-    late_tasks = [
-        task for task in completed_tasks if task.data_conclusao > task.prazo
+    tarefas_atrasadas = [
+        tarefa for tarefa in tarefas_concluidas if tarefa.data_conclusao > tarefa.prazo
     ]
-    indicators: dict[str, PriorityIndicator] = {}
-    for priority in Prioridade:
-        priority_tasks = [
-            task for task in valid_tasks if task.prioridade is priority
+    indicadores: dict[str, PriorityIndicator] = {}
+    for prioridade in Prioridade:
+        tarefas_da_prioridade = [
+            tarefa for tarefa in tarefas_validas if tarefa.prioridade is prioridade
         ]
-        if not priority_tasks:
+        if not tarefas_da_prioridade:
             continue
-        priority_completed = [
-            task for task in priority_tasks if task.status is Status.CONCLUIDA
+        tarefas_concluidas_da_prioridade = [
+            tarefa
+            for tarefa in tarefas_da_prioridade
+            if tarefa.status is Status.CONCLUIDA
         ]
-        indicators[priority.value] = PriorityIndicator(
-            quantidade=len(priority_tasks),
+        indicadores[prioridade.value] = PriorityIndicator(
+            quantidade=len(tarefas_da_prioridade),
             quantidade_atrasadas=sum(
-                task.data_conclusao > task.prazo for task in priority_completed
+                tarefa.data_conclusao > tarefa.prazo
+                for tarefa in tarefas_concluidas_da_prioridade
             ),
             tempo_medio_conclusao=(
-                sum(completion_times[id(task)] for task in priority_completed)
-                / len(priority_completed)
-                if priority_completed
+                sum(
+                    tempos_de_conclusao[id(tarefa)]
+                    for tarefa in tarefas_concluidas_da_prioridade
+                )
+                / len(tarefas_concluidas_da_prioridade)
+                if tarefas_concluidas_da_prioridade
                 else 0.0
             ),
         )
 
     return AnalysisResult(
-        tempo_medio_conclusao_min=sum(completion_times.values())
-        / len(completed_tasks),
+        tempo_medio_conclusao_min=sum(tempos_de_conclusao.values())
+        / len(tarefas_concluidas),
         taxa_atraso_percentual=round(
-            len(late_tasks) / len(completed_tasks) * 100, 2
+            len(tarefas_atrasadas) / len(tarefas_concluidas) * 100, 2
         ),
-        quantidade_tarefas=len(valid_tasks),
-        indicadores_por_prioridade=indicators,
+        quantidade_tarefas=len(tarefas_validas),
+        indicadores_por_prioridade=indicadores,
     )
