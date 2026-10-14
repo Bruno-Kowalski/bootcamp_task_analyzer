@@ -176,7 +176,7 @@ bootcamp_task_analyzer/
 ├── src/
 │   └── task_analyzer.py
 └── tests/
-    └── test_task_analyzer.py
+    └── test_harness.py
 ```
 
 Responsabilidades:
@@ -185,7 +185,7 @@ Responsabilidades:
 - `CONTEXT_RULES.md`: definir regras persistentes de governança e desenvolvimento assistido por IA;
 - `specs/task_analyzer_spec.md`: definir o contrato funcional SDD do TaskAnalyzer;
 - `src/task_analyzer.py`: conter a implementação do módulo;
-- `tests/test_task_analyzer.py`: conter os testes automatizados derivados do contrato.
+- `tests/test_harness.py`: conter os testes automatizados derivados do contrato.
 
 A estrutura não deverá ser alterada pela IA sem autorização humana explícita.
 
