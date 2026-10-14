@@ -112,6 +112,23 @@ A decisão final sobre qualquer implementação permanece sob responsabilidade h
 
 ---
 
+## Variáveis de ambiente
+
+Informações sensíveis e configurações específicas do ambiente devem ser
+armazenadas no arquivo local `.env`. Esse arquivo é ignorado pelo Git e não
+deve ser enviado ao GitHub. O projeto atualmente não exige variáveis de
+ambiente; o arquivo existe para uso local futuro.
+
+Nunca inclua no código ou em arquivos versionados:
+
+- senhas;
+- tokens e chaves de API;
+- credenciais;
+- strings de conexão;
+- identificadores ou configurações privadas de serviços.
+
+---
+
 ## Diretrizes Técnicas
 
 O desenvolvimento deverá seguir as seguintes diretrizes:
