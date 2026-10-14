@@ -218,10 +218,11 @@ Fase 1 v1.0.
 - [Relatório técnico em PDF](./docs/relatorio_tecnico_fase2.pdf)
 - [Evidência da execução do pytest](./docs/evidence_pytest.png)
 - [Evidência da árvore local](./docs/evidence_tree.png)
+- [Evidência do Pull Request #1](./docs/evidence_pull_request.png)
 
-Pull Request preparado para abertura:
+Pull Request aberto:
 
-<https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/new/feature/fase1-task-analyzer>
+<https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/1>
 
 O vídeo de apresentação não está incluído neste escopo.
 

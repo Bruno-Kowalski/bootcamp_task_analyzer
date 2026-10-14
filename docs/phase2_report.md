@@ -7,7 +7,7 @@
 - Branch de trabalho: `feature/fase1-task-analyzer`
 - Data da auditoria local: 14/10/2026
 - Branch publicada: `feature/fase1-task-analyzer`
-- Pull Request: <https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/new/feature/fase1-task-analyzer>
+- Pull Request #1: <https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/1>
 - Vídeo: pendente, conforme escopo solicitado
 
 ## 1. Objetivo e fonte de verdade
@@ -73,10 +73,9 @@ criar `TaskValidationError`, não adicionar a regra
 
 ## 6. Versionamento
 
-Foram usados commits atômicos na branch funcional. A branch funcional foi
-publicada no GitHub. O Pull Request está preparado no link acima, mas a
-criação exige autenticação interativa no GitHub e não foi possível concluí-la
-automaticamente neste ambiente.
+Foram usados commits atômicos na branch funcional. A branch funcional foi publicada no GitHub e o Pull Request #1 foi criado.
+O PR está aberto, sem conflitos com `main`, e contém o comentário de
+homologação com as evidências dos testes.
 
 ## 7. Evidências
 
@@ -87,9 +86,9 @@ As evidências textuais verificadas nesta auditoria são:
 - árvore local contendo README, CONTEXT_RULES, `specs/`, `src/` e `tests/`;
 - estado limpo após os commits locais.
 
-As evidências da branch publicada podem ser verificadas no GitHub pelo link
-acima. A captura do Pull Request depende da criação autenticada. O vídeo do
-YouTube não faz parte deste escopo.
+As evidências da branch publicada e do Pull Request estão disponíveis no
+GitHub e em `docs/evidence_pull_request.png`. O vídeo do YouTube não faz parte
+deste escopo.
 
 ## 8. Conclusão
 
