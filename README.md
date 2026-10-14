@@ -63,6 +63,106 @@ bootcamp_task_analyzer/
 
 ---
 
+## Como executar o projeto
+
+Os comandos abaixo devem ser executados a partir da raiz do repositório.
+
+### 1. Pré-requisitos
+
+- Python 3.11 ou superior;
+- `pip`;
+- PowerShell ou outro terminal compatível.
+
+Para verificar a versão do Python:
+
+```powershell
+python --version
+```
+
+### 2. Criar e ativar o ambiente virtual
+
+No Windows/PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Se o PowerShell bloquear a ativação por política de execução, execute os
+comandos usando diretamente o interpretador do ambiente virtual:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pytest -v
+```
+
+### 3. Instalar as dependências
+
+Com o ambiente virtual ativado:
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 4. Executar os testes
+
+Para executar o test harness completo:
+
+```powershell
+python -m pytest -v
+```
+
+O resultado esperado é:
+
+```text
+15 passed
+```
+
+Os testes estão em [tests/test_harness.py](./tests/test_harness.py) e cobrem os
+cenários de aceite, as regras de negócio e os casos de borda definidos na
+especificação.
+
+### 5. Usar o analisador em Python
+
+O projeto é um módulo de análise em memória. Não há servidor ou banco de dados
+para iniciar. Um exemplo mínimo de uso é:
+
+```python
+from datetime import datetime, timezone
+
+from src.task_analyzer import Prioridade, Status, Task, analyze_tasks
+
+utc = timezone.utc
+dia = datetime(2026, 9, 1, tzinfo=utc)
+
+tarefa = Task(
+    id_tarefa=1,
+    data_criacao=dia.replace(hour=7),
+    data_inicio=dia.replace(hour=8),
+    data_conclusao=dia.replace(hour=10),
+    prazo=dia.replace(hour=11),
+    prioridade=Prioridade.ALTA,
+    status=Status.CONCLUIDA,
+)
+
+resultado = analyze_tasks([tarefa])
+print(resultado.tempo_medio_conclusao_min)
+print(resultado.taxa_atraso_percentual)
+```
+
+Para executar esse exemplo, salve-o temporariamente em um arquivo na raiz do
+projeto, como `example.py`, e rode:
+
+```powershell
+python .\example.py
+```
+
+O arquivo de exemplo não faz parte do projeto e não deve ser criado com
+credenciais ou dados sensíveis.
+
+---
+
 ## Contrato Funcional
 
 A função pública principal planejada para o módulo é:
