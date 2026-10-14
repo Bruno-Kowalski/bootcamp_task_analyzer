@@ -1,0 +1,11 @@
+﻿README.md
+CONTEXT_RULES.md
+specs\
+  task_analyzer_spec.md
+src\
+  task_analyzer.py
+tests\
+  test_harness.py
+docs\
+  phase2_report.md
+  evidence_pytest.txt

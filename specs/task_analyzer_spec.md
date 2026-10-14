@@ -198,7 +198,8 @@ Somente tarefas com `status = concluida` deverão participar dos cálculos de:
 
 Tarefas com `status = pendente` ou `status = cancelada` poderão ser contabilizadas em `quantidade_tarefas` e nos indicadores de quantidade por prioridade, mas não deverão participar dos cálculos de tempo de conclusão ou atraso.
 
-Tarefas inválidas ou inconsistentes deverão ser ignoradas conforme as regras definidas neste contrato.
+Datas inválidas ou inconsistentes deverão lançar `InvalidTaskDataError` conforme
+as regras definidas neste contrato.
 
 ### RN02 - Cálculo do tempo de conclusão
 
@@ -246,7 +247,8 @@ Uma tarefa deverá ser considerada inconsistente quando ocorrer qualquer uma das
 3. `data_inicio` e `data_conclusao` estiverem preenchidas e `data_conclusao < data_inicio`;
 4. qualquer data obrigatória não possuir informação explícita de fuso horário UTC.
 
-Tarefas inconsistentes deverão ser ignoradas pelo analisador e não deverão participar dos cálculos nem da contagem de `quantidade_tarefas`.
+Tarefas com datas inconsistentes deverão lançar `InvalidTaskDataError` com a
+mensagem `Datas inválidas ou inconsistentes`.
 
 ### RN05 - Ausência de tarefas concluídas válidas
 
@@ -347,7 +349,9 @@ Serão consideradas válidas as tarefas que:
 6. respeitem as regras de consistência de datas definidas neste contrato;
 7. respeitem a regra de unicidade de `id_tarefa`.
 
-Tarefas inválidas ou inconsistentes deverão ser ignoradas e não deverão ser contabilizadas em `quantidade_tarefas`.
+Tarefas com datas inválidas ou inconsistentes deverão lançar
+`InvalidTaskDataError`. Outras tarefas inválidas deverão ser ignoradas e não
+contabilizadas em `quantidade_tarefas`.
 
 ---
 
@@ -401,7 +405,9 @@ tempo_medio_conclusao = 0.0
 
 ### 11.1 Tarefas inválidas ou inconsistentes
 
-Tarefas que violem as regras de validade ou consistência definidas neste contrato deverão ser ignoradas.
+Tarefas que violem as regras de validade não relacionadas a datas deverão ser
+ignoradas. Violações de RN04 deverão lançar `InvalidTaskDataError` com a
+mensagem `Datas inválidas ou inconsistentes`.
 
 Elas:
 
@@ -411,9 +417,17 @@ Elas:
 
 Após o descarte dessas tarefas, as tarefas válidas restantes deverão ser processadas normalmente.
 
-Caso, após a exclusão das tarefas inválidas ou inconsistentes, não exista nenhuma tarefa concluída válida, deverá ser aplicada a RN05.
+Caso não exista nenhuma tarefa concluída válida, deverá ser aplicada a RN05.
 
-### 11.2 NoCompletedTasksError
+### 11.2 InvalidTaskDataError
+
+Quando uma tarefa violar qualquer situação da RN04, deverá ser lançada:
+
+```python
+InvalidTaskDataError("Datas inválidas ou inconsistentes")
+```
+
+### 11.3 NoCompletedTasksError
 
 Quando não existir nenhuma tarefa concluída válida no conjunto analisado, o TaskAnalyzer não deverá retornar um `AnalysisResult`.
 
@@ -433,7 +447,15 @@ O lançamento da exceção deverá interromper a execução da análise e impedi
 
 ---
 
-## 12. CENÁRIOS DE ACEITE
+## 12. EXCEÇÕES ESPECÍFICAS
+
+As exceções públicas do módulo são `InvalidTaskDataError` e
+`NoCompletedTasksError`. Suas condições e mensagens são as definidas na
+seção 11 e não poderão ser substituídas por exceções genéricas.
+
+---
+
+## 13. CENÁRIOS DE ACEITE
 
 ### Cenário 1 - Análise realizada com sucesso
 
@@ -522,10 +544,9 @@ baixa:
 
 **Então**:
 
-- as tarefas inconsistentes deverão ser ignoradas;
-- elas não deverão participar dos cálculos;
-- elas não deverão participar de `quantidade_tarefas`;
-- as tarefas válidas restantes deverão ser processadas normalmente.
+- deverá ser lançada `InvalidTaskDataError` com a mensagem
+  `Datas inválidas ou inconsistentes`;
+- nenhuma análise parcial deverá ser retornada.
 
 Caso não reste nenhuma tarefa concluída válida, deverá ser aplicada a RN05.
 
@@ -551,7 +572,7 @@ O sistema não deverá retornar um objeto `AnalysisResult` nem qualquer resultad
 
 ---
 
-## 13. TEST HARNESS
+## 14. TEST HARNESS
 
 Os cenários de aceite deverão servir de base para testes automatizados utilizando `pytest`.
 
@@ -577,7 +598,7 @@ Os testes fornecidos não deverão ser alterados, removidos ou adaptados para ac
 
 ---
 
-## 14. RESTRIÇÕES
+## 15. RESTRIÇÕES
 
 O TaskAnalyzer não deverá:
 
@@ -593,3 +614,67 @@ O TaskAnalyzer não deverá:
 As regras de desenvolvimento, arquitetura, qualidade e governança para agentes de Inteligência Artificial estão definidas no arquivo:
 
 `CONTEXT_RULES.md`
+
+---
+
+## 16. QUALIDADE DA IMPLEMENTAÇÃO
+
+A implementação deverá utilizar Python 3.11 ou superior, tipagem estática em
+100% da API e das estruturas internas relevantes, responsabilidades coesas,
+PEP 8 e docstrings no formato Google. O módulo deverá utilizar somente a
+biblioteca padrão e as dependências autorizadas no projeto.
+
+---
+
+## 17. ARQUITETURA
+
+As estruturas de domínio deverão ser implementadas com `dataclass` e os
+valores controlados com `Enum`. A função `analyze_tasks` deverá coordenar a
+validação e os cálculos sem persistência e sem efeitos externos.
+
+---
+
+## 18. LOGGING
+
+O módulo deverá utilizar o módulo padrão `logging` para registrar eventos
+operacionais relevantes, sem registrar dados sensíveis ou substituir as
+exceções especificadas por retornos silenciosos.
+
+---
+
+## 19. BIBLIOTECAS AUTORIZADAS
+
+São autorizados os módulos da biblioteca padrão do Python e `pytest`
+exclusivamente no escopo de testes. Não deverão ser adicionadas bibliotecas de
+produção fora desse conjunto sem autorização.
+
+---
+
+## 20. CRITÉRIOS DE VALIDAÇÃO
+
+O harness deverá cobrir os três cenários de aceite, RN01 a RN08, as exceções,
+os tipos de saída, as regras de UTC, o arredondamento e os casos de borda
+explicitamente listados neste contrato.
+
+---
+
+## 21. RASTREABILIDADE
+
+Cada teste deverá indicar por comentário a seção ou regra do contrato que
+comprova. A tabela de rastreabilidade do relatório deverá associar cada
+entregável genérico do enunciado ao item equivalente desta especificação e ao
+teste correspondente.
+
+---
+
+## 22. VERSIONAMENTO, ENTREGA E FONTE DE VERDADE
+
+O desenvolvimento deverá ocorrer em branches de funcionalidade, com commits
+atômicos e validação automatizada antes da homologação. O nome do repositório é
+`bootcamp_task_analyzer`. Push e merge dependem de confirmação explícita do
+proprietário.
+
+Esta especificação v1.0 prevalece sobre o PDF genérico do enunciado em
+qualquer divergência técnica. O PDF deve ser utilizado somente como checklist
+de entregáveis. Alterações funcionais nesta especificação exigem autorização
+explícita do proprietário.
