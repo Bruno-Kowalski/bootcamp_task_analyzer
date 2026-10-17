@@ -131,6 +131,32 @@ As evidências versionadas incluem:
   visual do fluxo de Pull Request;
 - este relatório técnico.
 
+### 7.1 Prints comprobatórios
+
+Os prints abaixo foram produzidos a partir dos artefatos versionados do projeto:
+
+**Execução do Test Harness**
+
+![Pytest com cinco testes aprovados](./evidence_pytest.png)
+
+A imagem comprova a execução dos cinco casos atuais, todos com status `PASSED`,
+e o resumo final `5 passed`.
+
+**Estrutura do repositório**
+
+![Árvore do repositório](./evidence_tree.png)
+
+A imagem comprova a presença de `specs/`, `tests/`, `src/`, `README.md`,
+`CONTEXT_RULES.md` e `docs/`.
+
+**Fluxo de Pull Request**
+
+![Pull Request documentado](./evidence_pull_request.png)
+
+A imagem comprova o uso do fluxo de Pull Request no GitHub. O conteúdo textual
+do PR é histórico e deve ser interpretado junto com a validação atual publicada
+na `main`.
+
 ## 8. Conclusão
 
 Na validação atual, a estrutura exigida está presente, a implementação segue o
@@ -171,3 +197,55 @@ não deve ser apresentada como aprovação independente de um segundo usuário d
 GitHub. Os PRs históricos permanecem preservados como parte do versionamento e
 suas descrições antigas são identificadas neste relatório como evidências
 históricas, não como resultado da validação atual.
+
+## 10. Relato estruturado de homologação assistida por IA
+
+### 10.1 Objetivo
+
+Homologar se a implementação, os testes e a documentação atendem ao contrato
+SDD e aos critérios de avaliação da Fase 2, sem substituir a responsabilidade
+do autor pela revisão final.
+
+### 10.2 Insumos utilizados
+
+- [`specs/task_analyzer_spec.md`](../specs/task_analyzer_spec.md);
+- [`CONTEXT_RULES.md`](../CONTEXT_RULES.md);
+- [`src/task_analyzer.py`](../src/task_analyzer.py);
+- [`tests/test_harness.py`](../tests/test_harness.py);
+- [`README.md`](../README.md);
+- evidências textuais e visuais em `docs/`;
+- histórico Git/GitHub da branch `main`.
+
+### 10.3 Procedimento de homologação
+
+1. Comparação do contrato implementado com a especificação SDD.
+2. Verificação de type hints, dataclasses, enums e tratamento de erros.
+3. Conferência da correspondência entre os cenários de aceite e os testes.
+4. Execução do Test Harness com `pytest -v`.
+5. Execução de compilação com `compileall`.
+6. Conferência de consistência documental e das evidências visuais.
+7. Verificação do estado publicado na branch `main`.
+
+### 10.4 Evidências de execução
+
+| Verificação | Comando/artefato | Resultado |
+|---|---|---|
+| Test Harness | `python -m pytest -v` | `5 passed` |
+| Compilação | `python -m compileall -q src tests` | Aprovada |
+| Integridade do diff | `git diff --check` | Aprovada |
+| PDF atualizado | `docs/relatorio_tecnico_fase2.pdf` | Válido e visualmente conferido |
+| Repositório publicado | `origin/main` | Sincronizado |
+
+### 10.5 Resultado e limitações
+
+**Homologado para entrega acadêmica nos critérios técnicos avaliados.**
+
+Foram confirmados os cenários de sucesso, exceção e borda, além da
+consistência entre código, especificação, testes, README, regras de contexto e
+relatórios. A homologação foi realizada com assistência de IA e revisão final
+do autor.
+
+Esta homologação não representa uma aprovação independente de outro usuário do
+GitHub. O requisito de revisão/documentação foi atendido por meio do histórico
+de Pull Requests, da auto-revisão técnica registrada e dos prints incluídos
+neste relatório.
