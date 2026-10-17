@@ -12,9 +12,9 @@ O **TaskAnalyzer** tem como objetivo analisar um conjunto de tarefas e gerar ind
 
 O módulo deverá analisar tarefas recebidas em memória e gerar os seguintes indicadores:
 
-- tempo médio de conclusão;
+- tempo médio de conclusão em horas;
+- totais de tarefas, concluídas e pendentes;
 - taxa de atraso;
-- quantidade de tarefas válidas;
 - indicadores agrupados por prioridade.
 
 O sistema não deverá persistir dados em arquivos ou bancos de dados.
@@ -147,7 +147,10 @@ tarefa = Task(
 )
 
 resultado = analyze_tasks([tarefa])
-print(resultado.tempo_medio_conclusao_min)
+print(resultado.total_tarefas)
+print(resultado.total_concluidas)
+print(resultado.total_pendentes)
+print(resultado.tempo_medio_conclusao_horas)
 print(resultado.taxa_atraso_percentual)
 ```
 
@@ -174,6 +177,21 @@ def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
 
 A implementação deverá seguir integralmente o contrato definido na especificação SDD.
 
+### Indicadores retornados
+
+O objeto `AnalysisResult` contém:
+
+- `total_tarefas`: quantidade de tarefas válidas;
+- `total_concluidas`: quantidade de tarefas concluídas;
+- `total_pendentes`: quantidade de tarefas pendentes;
+- `tempo_medio_conclusao_horas`: média do tempo de conclusão em horas;
+- `taxa_atraso_percentual`: percentual de tarefas concluídas após o prazo;
+- `indicadores_por_prioridade`: indicadores agrupados por prioridade.
+
+Cada indicador de prioridade contém os mesmos totais e médias referentes
+exclusivamente àquela prioridade. Quando não existem tarefas concluídas, as
+médias e a taxa de atraso retornam `0.0`.
+
 Entre as principais regras previstas estão:
 
 - somente tarefas válidas participam dos resultados;
@@ -181,11 +199,38 @@ Entre as principais regras previstas estão:
 - datas e horários devem respeitar as regras de UTC;
 - identificadores de tarefa devem ser únicos;
 - tarefas pendentes ou canceladas não são consideradas atrasadas;
-- datas inválidas ou inconsistentes lançam `InvalidTaskDataError` com a mensagem
+- datas inválidas ou inconsistentes lançam `TaskValidationError` com a mensagem
   `Datas inválidas ou inconsistentes`;
-- a taxa de atraso e o tempo médio devem seguir exatamente as fórmulas especificadas;
+- entradas vazias ou sem tarefas concluídas retornam médias iguais a `0.0`;
+- a taxa de atraso e o tempo médio em horas devem seguir exatamente as fórmulas especificadas;
 - os resultados devem respeitar as estruturas `AnalysisResult` e `PriorityIndicator`;
-- a ausência de tarefas concluídas válidas deve gerar `NoCompletedTasksError`.
+
+---
+
+## Cenários do Test Harness
+
+O arquivo [tests/test_harness.py](./tests/test_harness.py) utiliza `pytest` e
+traduz diretamente os cenários de aceite:
+
+1. **Sucesso:** valida totais, médias em horas, taxa de atraso e indicadores
+   gerais e por prioridade;
+2. **Erro:** confirma que datas inconsistentes, como
+   `data_conclusao < data_criacao`, lançam `TaskValidationError`;
+3. **Casos de borda:** confirma que entradas vazias ou somente com tarefas
+   pendentes retornam médias e taxa de atraso iguais a `0.0`, sem exceções não
+   tratadas.
+
+Para executar a suíte:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Resultado atual:
+
+```text
+5 passed
+```
 
 ---
 
@@ -248,20 +293,22 @@ O desenvolvimento deverá seguir as seguintes diretrizes:
 
 ## Testes
 
-Os testes automatizados serão implementados com `pytest` e deverão ser derivados diretamente da especificação SDD.
+Os testes automatizados são executados com `pytest` e são derivados
+diretamente da especificação SDD.
 
 Entre os comportamentos que deverão ser validados estão:
 
 - processamento de entradas válidas;
 - cálculo do tempo de conclusão;
-- cálculo do tempo médio de conclusão;
+- cálculo do tempo médio de conclusão em horas;
 - identificação de tarefas atrasadas;
 - cálculo da taxa de atraso;
-- quantidade de tarefas válidas;
+- totais de tarefas, concluídas e pendentes;
 - agrupamento por prioridade;
 - tratamento de tarefas inválidas ou inconsistentes;
 - tratamento de identificadores duplicados;
-- tratamento da ausência de tarefas concluídas válidas;
+- tratamento de entradas vazias ou sem tarefas concluídas, com médias iguais a
+  `0.0`;
 - estrutura dos objetos de saída;
 - exceções e mensagens previstas no contrato.
 
