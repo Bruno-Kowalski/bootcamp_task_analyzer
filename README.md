@@ -116,7 +116,7 @@ python -m pytest -v
 O resultado esperado é:
 
 ```text
-15 passed
+5 passed
 ```
 
 Os testes estão em [tests/test_harness.py](./tests/test_harness.py) e cobrem os
