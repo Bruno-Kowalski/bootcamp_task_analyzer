@@ -40,7 +40,7 @@ A função deverá:
 
 - receber uma coleção de tarefas por meio do parâmetro `tasks`;
 - retornar um objeto `AnalysisResult` quando existir pelo menos uma tarefa concluída válida;
-- lançar `NoCompletedTasksError` quando não existir nenhuma tarefa concluída válida.
+- retornar médias iguais a `0.0` quando não existir nenhuma tarefa concluída válida.
 
 A assinatura pública não deverá ser alterada sem autorização explícita.
 
@@ -149,20 +149,25 @@ O resultado da análise deverá possuir a estrutura:
 
 ```text
 AnalysisResult
-├── tempo_medio_conclusao_min: float
+├── total_tarefas: int
+├── total_concluidas: int
+├── total_pendentes: int
+├── tempo_medio_conclusao_horas: float
 ├── taxa_atraso_percentual: float
-├── quantidade_tarefas: int
 └── indicadores_por_prioridade: dict[str, PriorityIndicator]
 ```
 
 Significado dos campos:
 
-- `tempo_medio_conclusao_min`: média dos tempos de conclusão das tarefas concluídas válidas, em minutos;
+- `total_tarefas`: quantidade de tarefas válidas consideradas pelo analisador;
+- `total_concluidas`: quantidade de tarefas concluídas válidas;
+- `total_pendentes`: quantidade de tarefas pendentes válidas;
+- `tempo_medio_conclusao_horas`: média dos tempos de conclusão das tarefas concluídas válidas, em horas;
 - `taxa_atraso_percentual`: percentual de tarefas concluídas válidas que foram concluídas após o prazo;
-- `quantidade_tarefas`: quantidade de tarefas válidas consideradas pelo analisador;
 - `indicadores_por_prioridade`: indicadores agrupados pelas prioridades presentes nas tarefas válidas.
 
-Quando não existir nenhuma tarefa concluída válida, o objeto `AnalysisResult` não deverá ser criado ou retornado.
+Quando não existir nenhuma tarefa concluída válida, as médias e a taxa de atraso
+deverão ser retornadas como `0.0`, sem lançar exceção.
 
 ### 5.2 PriorityIndicator
 
@@ -170,9 +175,11 @@ Cada entrada de `indicadores_por_prioridade` deverá possuir a estrutura:
 
 ```text
 PriorityIndicator
-├── quantidade: int
-├── quantidade_atrasadas: int
-└── tempo_medio_conclusao: float
+├── total_tarefas: int
+├── total_concluidas: int
+├── total_pendentes: int
+├── tempo_medio_conclusao_horas: float
+└── taxa_atraso_percentual: float
 ```
 
 O dicionário deverá utilizar o valor textual da prioridade como chave:
@@ -196,9 +203,9 @@ Somente tarefas com `status = concluida` deverão participar dos cálculos de:
 - identificação de atraso;
 - taxa de atraso.
 
-Tarefas com `status = pendente` ou `status = cancelada` poderão ser contabilizadas em `quantidade_tarefas` e nos indicadores de quantidade por prioridade, mas não deverão participar dos cálculos de tempo de conclusão ou atraso.
+Tarefas com `status = pendente` ou `status = cancelada` poderão ser contabilizadas em `total_tarefas` e nos indicadores de quantidade por prioridade, mas não deverão participar dos cálculos de tempo de conclusão ou atraso.
 
-Datas inválidas ou inconsistentes deverão lançar `InvalidTaskDataError` conforme
+Datas inválidas ou inconsistentes deverão lançar `TaskValidationError` conforme
 as regras definidas neste contrato.
 
 ### RN02 - Cálculo do tempo de conclusão
@@ -208,13 +215,13 @@ Para cada tarefa concluída válida, o tempo de conclusão deverá ser calculado
 Fórmula:
 
 ```text
-tempo_conclusao_min =
+tempo_conclusao_horas =
 (data_conclusao - data_inicio).total_seconds() / 60
 ```
 
 O resultado deverá:
 
-- ser expresso em minutos;
+- ser expresso em horas;
 - possuir tipo `float`.
 
 Exemplo:
@@ -247,18 +254,14 @@ Uma tarefa deverá ser considerada inconsistente quando ocorrer qualquer uma das
 3. `data_inicio` e `data_conclusao` estiverem preenchidas e `data_conclusao < data_inicio`;
 4. qualquer data obrigatória não possuir informação explícita de fuso horário UTC.
 
-Tarefas com datas inconsistentes deverão lançar `InvalidTaskDataError` com a
+Tarefas com datas inconsistentes deverão lançar `TaskValidationError` com a
 mensagem `Datas inválidas ou inconsistentes`.
 
 ### RN05 - Ausência de tarefas concluídas válidas
 
-Quando não existir nenhuma tarefa concluída válida no conjunto analisado, o TaskAnalyzer deverá lançar a exceção `NoCompletedTasksError`.
-
-Nessa situação:
-
-- nenhum objeto `AnalysisResult` deverá ser retornado;
-- nenhum resultado parcial deverá ser retornado;
-- a execução da análise deverá ser interrompida.
+Quando não existir nenhuma tarefa concluída válida no conjunto analisado, o
+TaskAnalyzer deverá retornar indicadores com médias e taxa de atraso iguais a
+`0.0`.
 
 ### RN06 - Fuso horário
 
@@ -270,7 +273,7 @@ Objetos `datetime` sem informação de fuso horário ou associados a qualquer fu
 
 O campo `taxa_atraso_percentual` deverá ser arredondado para duas casas decimais.
 
-O campo `tempo_medio_conclusao_min` não deverá sofrer arredondamento obrigatório e deverá manter o resultado do cálculo como `float`.
+O campo `tempo_medio_conclusao_horas` não deverá sofrer arredondamento obrigatório e deverá manter o resultado como `float`.
 
 ### RN08 - Identificador de tarefa duplicado
 
@@ -278,7 +281,7 @@ Dentro da mesma coleção de entrada, cada `id_tarefa` deverá ser único.
 
 Quando duas ou mais tarefas possuírem o mesmo `id_tarefa`, todas as tarefas que possuírem esse identificador duplicado deverão ser consideradas inválidas.
 
-As tarefas com identificador duplicado não deverão participar dos cálculos nem da contagem de `quantidade_tarefas`.
+As tarefas com identificador duplicado não deverão participar dos cálculos nem da contagem de `total_tarefas`.
 
 ---
 
@@ -295,7 +298,7 @@ O tempo médio de conclusão deverá ser calculado considerando somente tarefas 
 Fórmula:
 
 ```text
-tempo_medio_conclusao_min =
+tempo_medio_conclusao_horas =
 soma dos tempos de conclusão das tarefas concluídas válidas
 /
 quantidade de tarefas concluídas válidas
@@ -337,7 +340,7 @@ Quando não houver tarefas concluídas válidas, deverá ser aplicada a RN05.
 
 ## 9. QUANTIDADE DE TAREFAS
 
-O campo `quantidade_tarefas` deverá representar a quantidade de tarefas válidas consideradas pelo analisador, independentemente do status.
+O campo `total_tarefas` deverá representar a quantidade de tarefas válidas consideradas pelo analisador, independentemente do status.
 
 Serão consideradas válidas as tarefas que:
 
@@ -350,8 +353,8 @@ Serão consideradas válidas as tarefas que:
 7. respeitem a regra de unicidade de `id_tarefa`.
 
 Tarefas com datas inválidas ou inconsistentes deverão lançar
-`InvalidTaskDataError`. Outras tarefas inválidas deverão ser ignoradas e não
-contabilizadas em `quantidade_tarefas`.
+`TaskValidationError`. Outras tarefas inválidas deverão ser ignoradas e não
+contabilizadas em `total_tarefas`.
 
 ---
 
@@ -370,16 +373,17 @@ Somente prioridades que possuírem pelo menos uma tarefa válida deverão aparec
 Para cada prioridade deverão ser informados:
 
 - `quantidade`;
-- `quantidade_atrasadas`;
-- `tempo_medio_conclusao`.
+- `total_tarefas`, `total_concluidas` e `total_pendentes`;
+- `tempo_medio_conclusao_horas`;
+- `taxa_atraso_percentual`.
 
 ### 10.1 Quantidade
 
-O campo `quantidade` deverá representar o número total de tarefas válidas daquela prioridade, independentemente do status.
+O campo `total_tarefas` deverá representar o número total de tarefas válidas daquela prioridade, independentemente do status.
 
 ### 10.2 Quantidade de tarefas atrasadas
 
-O campo `quantidade_atrasadas` deverá representar a quantidade de tarefas válidas daquela prioridade que:
+O campo `taxa_atraso_percentual` deverá representar o percentual de tarefas válidas daquela prioridade que:
 
 1. possuam `status = concluida`;
 2. possuam `data_inicio` válida;
@@ -391,12 +395,12 @@ Tarefas pendentes ou canceladas nunca deverão ser contabilizadas como atrasadas
 
 ### 10.3 Tempo médio de conclusão
 
-O campo `tempo_medio_conclusao` deverá representar a média, em minutos, dos tempos de conclusão das tarefas concluídas válidas daquela prioridade.
+O campo `tempo_medio_conclusao_horas` deverá representar a média, em horas, dos tempos de conclusão das tarefas concluídas válidas daquela prioridade.
 
 Quando uma prioridade possuir tarefas válidas, mas nenhuma tarefa concluída válida, o valor deverá ser:
 
 ```text
-tempo_medio_conclusao = 0.0
+tempo_medio_conclusao_horas = 0.0
 ```
 
 ---
@@ -406,52 +410,32 @@ tempo_medio_conclusao = 0.0
 ### 11.1 Tarefas inválidas ou inconsistentes
 
 Tarefas que violem as regras de validade não relacionadas a datas deverão ser
-ignoradas. Violações de RN04 deverão lançar `InvalidTaskDataError` com a
+ignoradas. Violações de RN04 deverão lançar `TaskValidationError` com a
 mensagem `Datas inválidas ou inconsistentes`.
 
 Elas:
 
 - não deverão participar dos cálculos;
-- não deverão participar da contagem de `quantidade_tarefas`;
+- não deverão participar da contagem de `total_tarefas`;
 - não deverão contribuir para os indicadores por prioridade.
 
 Após o descarte dessas tarefas, as tarefas válidas restantes deverão ser processadas normalmente.
 
 Caso não exista nenhuma tarefa concluída válida, deverá ser aplicada a RN05.
 
-### 11.2 InvalidTaskDataError
+### 11.2 TaskValidationError
 
 Quando uma tarefa violar qualquer situação da RN04, deverá ser lançada:
 
 ```python
-InvalidTaskDataError("Datas inválidas ou inconsistentes")
+TaskValidationError("Datas inválidas ou inconsistentes")
 ```
-
-### 11.3 NoCompletedTasksError
-
-Quando não existir nenhuma tarefa concluída válida no conjunto analisado, o TaskAnalyzer não deverá retornar um `AnalysisResult`.
-
-Deverá ser lançada a exceção específica:
-
-```python
-NoCompletedTasksError
-```
-
-com a mensagem obrigatória:
-
-```text
-Não existem tarefas concluídas válidas para realizar a análise.
-```
-
-O lançamento da exceção deverá interromper a execução da análise e impedir o retorno de resultados parciais.
-
----
 
 ## 12. EXCEÇÕES ESPECÍFICAS
 
-As exceções públicas do módulo são `InvalidTaskDataError` e
-`NoCompletedTasksError`. Suas condições e mensagens são as definidas na
-seção 11 e não poderão ser substituídas por exceções genéricas.
+As exceções públicas do módulo incluem `TaskValidationError`, usada para
+representar datas inconsistentes. Entradas sem tarefas concluídas retornam
+indicadores com médias iguais a `0.0` e não geram exceção.
 
 ---
 
@@ -508,8 +492,10 @@ for executada,
 **Então** deverá ser retornado um `AnalysisResult` contendo:
 
 ```text
-quantidade_tarefas = 3
-tempo_medio_conclusao_min = 120.0
+total_tarefas = 3
+total_concluidas = 2
+total_pendentes = 1
+tempo_medio_conclusao_horas = 2.0
 taxa_atraso_percentual = 50.00
 ```
 
@@ -521,14 +507,18 @@ Os indicadores por prioridade deverão conter:
 
 ```text
 alta:
-    quantidade = 2
-    quantidade_atrasadas = 1
-    tempo_medio_conclusao = 180.0
+    total_tarefas = 2
+    total_concluidas = 1
+    total_pendentes = 1
+    tempo_medio_conclusao_horas = 3.0
+    taxa_atraso_percentual = 100.0
 
 baixa:
-    quantidade = 1
-    quantidade_atrasadas = 0
-    tempo_medio_conclusao = 60.0
+    total_tarefas = 1
+    total_concluidas = 1
+    total_pendentes = 0
+    tempo_medio_conclusao_horas = 1.0
+    taxa_atraso_percentual = 0.0
 ```
 
 ### Cenário 2 - Tarefas com dados inconsistentes
@@ -544,7 +534,7 @@ baixa:
 
 **Então**:
 
-- deverá ser lançada `InvalidTaskDataError` com a mensagem
+- deverá ser lançada `TaskValidationError` com a mensagem
   `Datas inválidas ou inconsistentes`;
 - nenhuma análise parcial deverá ser retornada.
 
@@ -556,19 +546,9 @@ Caso não reste nenhuma tarefa concluída válida, deverá ser aplicada a RN05.
 
 **Quando** o TaskAnalyzer for executado,
 
-**Então** deverá lançar:
-
-```python
-NoCompletedTasksError
-```
-
-com a mensagem:
-
-```text
-Não existem tarefas concluídas válidas para realizar a análise.
-```
-
-O sistema não deverá retornar um objeto `AnalysisResult` nem qualquer resultado parcial.
+**Então** deverá retornar um `AnalysisResult` com
+`total_concluidas = 0`, `tempo_medio_conclusao_horas = 0.0` e
+`taxa_atraso_percentual = 0.0`.
 
 ---
 
@@ -587,12 +567,11 @@ Os testes deverão verificar, no mínimo:
 - agrupamento de indicadores por prioridade;
 - tratamento de tarefas inválidas ou inconsistentes;
 - tratamento de identificadores duplicados;
-- tratamento da ausência de tarefas concluídas válidas;
+- tratamento de entradas vazias ou sem tarefas concluídas;
 - estrutura de `AnalysisResult`;
 - estrutura de `PriorityIndicator`;
 - valores retornados conforme o contrato;
-- lançamento de `NoCompletedTasksError`;
-- mensagem obrigatória da exceção.
+- retorno de médias `0.0` quando não houver tarefas concluídas.
 
 Os testes fornecidos não deverão ser alterados, removidos ou adaptados para acomodar erros da implementação.
 
