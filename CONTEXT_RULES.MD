@@ -128,7 +128,8 @@ Os testes deverão verificar, no mínimo:
 - agrupamento dos indicadores por prioridade;
 - tratamento de tarefas inválidas ou inconsistentes;
 - tratamento de identificadores duplicados;
-- tratamento da ausência de tarefas concluídas válidas;
+- tratamento de entradas vazias ou sem tarefas concluídas, com retorno de
+  médias iguais a `0.0`;
 - estrutura de `AnalysisResult`;
 - estrutura de `PriorityIndicator`;
 - valores retornados conforme o contrato;
