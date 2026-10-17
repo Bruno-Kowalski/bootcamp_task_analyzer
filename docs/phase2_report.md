@@ -143,3 +143,31 @@ borda. A suíte executa com aprovação total:
 
 O PDF técnico é um artefato binário histórico; este arquivo Markdown é a fonte
 editável e atualizada do relatório.
+
+## 9. Revisão técnica de conformidade
+
+Foi realizada uma auto-revisão técnica do estado publicado na `main` em
+17/10/2026. A revisão comparou o barema com a árvore do repositório, a
+especificação, a implementação, o Test Harness e as evidências versionadas.
+
+| Item revisado | Verificação | Resultado |
+|---|---|---|
+| Estrutura exigida | `specs/`, `tests/`, `src/`, `README.md` e `CONTEXT_RULES.md` presentes | Aprovado |
+| Versionamento | `main` publicada, histórico de commits preservado e PRs históricos documentados | Aprovado |
+| Implementação SDD/IA | `src/task_analyzer.py` segue a especificação, usa type hints e tratamento específico de erros | Aprovado |
+| Cenário 1 | Totais, médias gerais, médias por prioridade e taxa de atraso validados | Aprovado |
+| Cenário 2 | `TaskValidationError` validado para data de conclusão anterior à criação | Aprovado |
+| Casos de borda | Entrada vazia e somente pendentes retornam médias `0.0` sem erro não tratado | Aprovado |
+| Evidência de execução | `docs/evidence_pytest.txt` e `docs/evidence_pytest.png` registram `5 passed` | Aprovado |
+| Consistência documental | README, especificação, regras, relatório e evidências usam o contrato atual | Aprovado |
+
+### Resultado da auto-revisão
+
+**Conforme para entrega segundo os critérios técnicos avaliados.**
+
+Esta é uma revisão técnica realizada pelo autor do projeto e está sendo
+documentada para atender ao requisito de revisão/documentação do trabalho. Ela
+não deve ser apresentada como aprovação independente de um segundo usuário do
+GitHub. Os PRs históricos permanecem preservados como parte do versionamento e
+suas descrições antigas são identificadas neste relatório como evidências
+históricas, não como resultado da validação atual.
