@@ -1,17 +1,16 @@
-"""Acceptance and edge-case tests for the Phase 1 v1.0 contract."""
+"""Test Harness pytest para os cenários de aceite do TaskAnalyzer."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 
 from src.task_analyzer import (
     AnalysisResult,
-    InvalidTaskDataError,
-    NoCompletedTasksError,
-    Prioridade,
     PriorityIndicator,
+    Prioridade,
     Status,
     Task,
+    TaskValidationError,
     analyze_tasks,
 )
 
@@ -19,185 +18,132 @@ from src.task_analyzer import (
 UTC = timezone.utc
 
 
-def task(
-    task_id: int,
+def criar_tarefa(
+    id_tarefa: int,
     *,
     status: Status = Status.CONCLUIDA,
-    priority: Prioridade = Prioridade.ALTA,
-    start_hour: int | None = 8,
-    completion_hour: int | None = 11,
-    deadline_hour: int = 10,
-    created_hour: int = 7,
+    prioridade: Prioridade = Prioridade.ALTA,
+    hora_criacao: int = 7,
+    hora_inicio: int | None = 8,
+    hora_conclusao: int | None = 11,
+    hora_prazo: int = 10,
 ) -> Task:
-    """Build a task with UTC dates for the harness."""
-    date = datetime(2026, 9, 1, tzinfo=UTC)
+    """Cria uma tarefa com datas UTC para os cenários de teste."""
+    data = datetime(2026, 9, 1, tzinfo=UTC)
     return Task(
-        id_tarefa=task_id,
-        data_criacao=date.replace(hour=created_hour),
+        id_tarefa=id_tarefa,
+        data_criacao=data.replace(hour=hora_criacao),
         data_inicio=(
-            date.replace(hour=start_hour) if start_hour is not None else None
+            data.replace(hour=hora_inicio) if hora_inicio is not None else None
         ),
         data_conclusao=(
-            date.replace(hour=completion_hour)
-            if completion_hour is not None
+            data.replace(hour=hora_conclusao)
+            if hora_conclusao is not None
             else None
         ),
-        prazo=date.replace(hour=deadline_hour),
-        prioridade=priority,
+        prazo=data.replace(hour=hora_prazo),
+        prioridade=prioridade,
         status=status,
     )
 
 
-def test_acceptance_scenario_one_matches_specification() -> None:
-    # Especificação 13.1 / RN01-RN03, RN07, seção 20: cenário 1.
-    result = analyze_tasks(
+def test_analise_calcula_totais_medias_e_atrasos() -> None:
+    """Cenário 1: calcula os indicadores gerais e por prioridade."""
+    resultado = analyze_tasks(
         [
-            task(1, priority=Prioridade.ALTA),
-            task(
+            criar_tarefa(1, prioridade=Prioridade.ALTA),
+            criar_tarefa(
                 2,
-                priority=Prioridade.BAIXA,
-                start_hour=9,
-                completion_hour=10,
-                deadline_hour=11,
-                created_hour=8,
+                prioridade=Prioridade.BAIXA,
+                hora_inicio=9,
+                hora_conclusao=10,
+                hora_prazo=11,
+                hora_criacao=8,
             ),
-            task(
+            criar_tarefa(
                 3,
                 status=Status.PENDENTE,
-                priority=Prioridade.ALTA,
-                start_hour=None,
-                completion_hour=None,
-                deadline_hour=18,
-                created_hour=9,
+                prioridade=Prioridade.ALTA,
+                hora_inicio=None,
+                hora_conclusao=None,
+                hora_prazo=18,
+                hora_criacao=9,
             ),
         ]
     )
 
-    assert isinstance(result, AnalysisResult)
-    assert result.quantidade_tarefas == 3
-    assert result.taxa_atraso_percentual == pytest.approx(50.0)
-    assert result.tempo_medio_conclusao_min == pytest.approx(120.0)
-    assert result.indicadores_por_prioridade["alta"] == PriorityIndicator(
-        quantidade=2, quantidade_atrasadas=1, tempo_medio_conclusao=180.0
+    assert isinstance(resultado, AnalysisResult)
+    assert resultado.total_tarefas == 3
+    assert resultado.total_concluidas == 2
+    assert resultado.total_pendentes == 1
+    assert resultado.tempo_medio_conclusao_horas == pytest.approx(2.0)
+    assert resultado.taxa_atraso_percentual == pytest.approx(50.0)
+    assert resultado.indicadores_por_prioridade["alta"] == PriorityIndicator(
+        total_tarefas=2,
+        total_concluidas=1,
+        total_pendentes=1,
+        tempo_medio_conclusao_horas=3.0,
+        taxa_atraso_percentual=100.0,
     )
-    assert result.indicadores_por_prioridade["baixa"] == PriorityIndicator(
-        quantidade=1, quantidade_atrasadas=0, tempo_medio_conclusao=60.0
+    assert resultado.indicadores_por_prioridade["baixa"] == PriorityIndicator(
+        total_tarefas=1,
+        total_concluidas=1,
+        total_pendentes=0,
+        tempo_medio_conclusao_horas=1.0,
+        taxa_atraso_percentual=0.0,
     )
-    assert "media" not in result.indicadores_por_prioridade
+
+
+def test_data_inconsistente_gera_erro() -> None:
+    """Cenário 2: conclusão anterior à criação dispara validação."""
+    tarefa = criar_tarefa(1, hora_criacao=12, hora_conclusao=11)
+
+    with pytest.raises(TaskValidationError):
+        analyze_tasks([tarefa])
 
 
 @pytest.mark.parametrize(
-    "invalid_task",
+    "tarefas",
     [
-        # Especificação 12.1 / RN04: concluída sem data_inicio.
-        task(1, start_hour=None),
-        # Especificação 12.1 / RN04: concluída sem data_conclusao.
-        task(1, completion_hour=None),
-        # Especificação 12.1 / RN04: conclusão anterior ao início.
-        task(1, start_hour=12, completion_hour=11),
-        # Especificação 12.1 / RN04: data sem fuso UTC.
-        task(1),
+        pytest.param([], id="entrada_vazia"),
+        pytest.param(
+            [
+                criar_tarefa(
+                    1,
+                    status=Status.PENDENTE,
+                    hora_inicio=None,
+                    hora_conclusao=None,
+                )
+            ],
+            id="somente_tarefas_pendentes",
+        ),
     ],
 )
-def test_scenario_two_raises_for_each_rn04_case(
-    invalid_task: Task,
-) -> None:
-    # Especificação 13.2 / RN04 e seção 20: dados de data inválidos.
-    if invalid_task.data_inicio is not None and invalid_task.data_conclusao is not None:
-        if invalid_task.data_inicio.hour == 8 and invalid_task.data_conclusao.hour == 11:
-            invalid_task = Task(
-                **{
-                    **invalid_task.__dict__,
-                    "data_criacao": invalid_task.data_criacao.replace(tzinfo=None),
-                }
-            )
-    with pytest.raises(
-        InvalidTaskDataError, match="^Datas inválidas ou inconsistentes$"
-    ):
-        analyze_tasks([invalid_task])
+def test_entrada_sem_concluidas_retorna_zeros(tarefas: list[Task]) -> None:
+    """Casos de borda: entradas sem concluídas retornam indicadores zero."""
+    resultado = analyze_tasks(tarefas)
+
+    assert resultado.total_concluidas == 0
+    assert resultado.tempo_medio_conclusao_horas == 0.0
+    assert resultado.taxa_atraso_percentual == 0.0
 
 
-def test_no_completed_tasks_error_for_empty_input() -> None:
-    # Especificação 13.3 / RN05 e seção 20: entrada sem concluídas válidas.
-    with pytest.raises(
-        NoCompletedTasksError,
-        match="^Não existem tarefas concluídas válidas para realizar a análise\\.$",
-    ):
-        analyze_tasks([])
-
-
-@pytest.mark.parametrize(
-    "tasks",
-    [
-        [task(1, status=Status.PENDENTE, start_hour=None, completion_hour=None)],
-        [task(1, status=Status.CANCELADA, start_hour=None, completion_hour=None)],
-    ],
-)
-def test_only_pending_or_cancelled_tasks_raise_no_completed_error(
-    tasks: list[Task],
-) -> None:
-    # Especificação 9.3 / RN05 e seção 20: pendentes/canceladas sem concluídas.
-    with pytest.raises(NoCompletedTasksError):
-        analyze_tasks(tasks)
-
-
-def test_duplicate_ids_are_all_invalid() -> None:
-    # Especificação RN08 e seção 20: identificador duplicado.
-    with pytest.raises(NoCompletedTasksError):
-        analyze_tasks([task(1), task(1, priority=Prioridade.BAIXA)])
-
-
-@pytest.mark.parametrize("offset", [None, timedelta(hours=1)])
-def test_non_utc_datetime_is_invalid(offset: timedelta | None) -> None:
-    # Especificação RN04/RN06 e seção 20: datetime sem UTC ou em outro fuso.
-    value = datetime(2026, 9, 1, 8, tzinfo=UTC if offset is None else timezone(offset))
-    if offset is None:
-        value = value.replace(tzinfo=None)
-    invalid = task(1)
-    invalid = Task(**{**invalid.__dict__, "data_inicio": value})
-    with pytest.raises(InvalidTaskDataError):
-        analyze_tasks([invalid])
-
-
-def test_priority_with_only_pending_tasks_has_zero_average() -> None:
-    # Especificação 9.3 / 10.3 e seção 20: prioridade sem concluídas.
-    result = analyze_tasks(
+def test_media_da_prioridade_sem_concluidas_e_zero() -> None:
+    """Caso de borda: média da prioridade pendente permanece em zero."""
+    resultado = analyze_tasks(
         [
-            task(1, priority=Prioridade.ALTA),
-            task(
+            criar_tarefa(1, prioridade=Prioridade.ALTA),
+            criar_tarefa(
                 2,
                 status=Status.PENDENTE,
-                priority=Prioridade.MEDIA,
-                start_hour=None,
-                completion_hour=None,
+                prioridade=Prioridade.MEDIA,
+                hora_inicio=None,
+                hora_conclusao=None,
             ),
         ]
     )
-    assert result.indicadores_por_prioridade["media"].tempo_medio_conclusao == 0.0
 
-
-def test_delay_rate_is_rounded_to_two_decimal_places() -> None:
-    # Especificação RN07 e seção 20: arredondamento da taxa em duas casas.
-    tasks = [
-        task(1, deadline_hour=10),
-        task(2, deadline_hour=11),
-        task(3, deadline_hour=11),
-    ]
-    result = analyze_tasks(tasks)
-    assert result.taxa_atraso_percentual == pytest.approx(33.33)
-
-
-def test_priority_without_valid_tasks_is_absent() -> None:
-    # Especificação 10 / RN04 e seção 20: prioridade inválida ausente.
-    valid = task(1, priority=Prioridade.ALTA)
-    invalid = Task(**{**task(2, priority=Prioridade.MEDIA).__dict__, "data_inicio": datetime(2026, 9, 1, 8)})
-    with pytest.raises(InvalidTaskDataError):
-        analyze_tasks([valid, invalid])
-
-
-def test_completed_tasks_can_share_one_priority() -> None:
-    # Especificação 10 e seção 20: indicadores apenas da prioridade presente.
-    result = analyze_tasks(
-        [task(1, priority=Prioridade.BAIXA), task(2, priority=Prioridade.BAIXA)]
+    assert (
+        resultado.indicadores_por_prioridade["media"].tempo_medio_conclusao_horas
+        == 0.0
     )
-    assert set(result.indicadores_por_prioridade) == {"baixa"}

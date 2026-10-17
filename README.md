@@ -12,9 +12,9 @@ O **TaskAnalyzer** tem como objetivo analisar um conjunto de tarefas e gerar ind
 
 O módulo deverá analisar tarefas recebidas em memória e gerar os seguintes indicadores:
 
-- tempo médio de conclusão;
+- tempo médio de conclusão em horas;
+- totais de tarefas, concluídas e pendentes;
 - taxa de atraso;
-- quantidade de tarefas válidas;
 - indicadores agrupados por prioridade.
 
 O sistema não deverá persistir dados em arquivos ou bancos de dados.
@@ -116,7 +116,7 @@ python -m pytest -v
 O resultado esperado é:
 
 ```text
-15 passed
+5 passed
 ```
 
 Os testes estão em [tests/test_harness.py](./tests/test_harness.py) e cobrem os
@@ -147,7 +147,10 @@ tarefa = Task(
 )
 
 resultado = analyze_tasks([tarefa])
-print(resultado.tempo_medio_conclusao_min)
+print(resultado.total_tarefas)
+print(resultado.total_concluidas)
+print(resultado.total_pendentes)
+print(resultado.tempo_medio_conclusao_horas)
 print(resultado.taxa_atraso_percentual)
 ```
 
@@ -181,11 +184,11 @@ Entre as principais regras previstas estão:
 - datas e horários devem respeitar as regras de UTC;
 - identificadores de tarefa devem ser únicos;
 - tarefas pendentes ou canceladas não são consideradas atrasadas;
-- datas inválidas ou inconsistentes lançam `InvalidTaskDataError` com a mensagem
+- datas inválidas ou inconsistentes lançam `TaskValidationError` com a mensagem
   `Datas inválidas ou inconsistentes`;
-- a taxa de atraso e o tempo médio devem seguir exatamente as fórmulas especificadas;
+- entradas vazias ou sem tarefas concluídas retornam médias iguais a `0.0`;
+- a taxa de atraso e o tempo médio em horas devem seguir exatamente as fórmulas especificadas;
 - os resultados devem respeitar as estruturas `AnalysisResult` e `PriorityIndicator`;
-- a ausência de tarefas concluídas válidas deve gerar `NoCompletedTasksError`.
 
 ---
 

@@ -11,17 +11,10 @@ from typing import Iterable
 
 REGISTRADOR = logging.getLogger(__name__)
 MENSAGEM_DADOS_TAREFA_INVALIDOS = "Datas inválidas ou inconsistentes"
-MENSAGEM_NENHUMA_TAREFA_CONCLUIDA = (
-    "Não existem tarefas concluídas válidas para realizar a análise."
-)
 
 
-class InvalidTaskDataError(ValueError):
-    """Indica que uma tarefa contém datas inválidas ou inconsistentes."""
-
-
-class NoCompletedTasksError(ValueError):
-    """Indica que não há tarefa concluída válida para análise."""
+class TaskValidationError(ValueError):
+    """Indica que uma tarefa contém dados inválidos ou inconsistentes."""
 
 
 class Prioridade(str, Enum):
@@ -55,20 +48,24 @@ class Task:
 
 @dataclass(frozen=True)
 class PriorityIndicator:
-    """Indicadores consolidados de uma prioridade."""
+    """Indicadores consolidados das tarefas de uma prioridade."""
 
-    quantidade: int
-    quantidade_atrasadas: int
-    tempo_medio_conclusao: float
+    total_tarefas: int
+    total_concluidas: int
+    total_pendentes: int
+    tempo_medio_conclusao_horas: float
+    taxa_atraso_percentual: float
 
 
 @dataclass(frozen=True)
 class AnalysisResult:
     """Indicadores consolidados de uma coleção de tarefas."""
 
-    tempo_medio_conclusao_min: float
+    total_tarefas: int
+    total_concluidas: int
+    total_pendentes: int
+    tempo_medio_conclusao_horas: float
     taxa_atraso_percentual: float
-    quantidade_tarefas: int
     indicadores_por_prioridade: dict[str, PriorityIndicator]
 
 
@@ -83,16 +80,18 @@ def _eh_datetime_utc(value: object) -> bool:
 
 
 def _validar_dados_de_data(task: Task) -> None:
-    """Valida as datas aplicáveis e as regras de consistência da RN04."""
+    """Valida as datas aplicáveis e sua ordem cronológica."""
     datas = (task.data_criacao, task.data_inicio, task.data_conclusao, task.prazo)
     if any(valor is not None and not _eh_datetime_utc(valor) for valor in datas):
-        raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
+        raise TaskValidationError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
 
     if task.status is Status.CONCLUIDA:
         if task.data_inicio is None or task.data_conclusao is None:
-            raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
+            raise TaskValidationError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
+        if task.data_conclusao < task.data_criacao:
+            raise TaskValidationError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
         if task.data_conclusao < task.data_inicio:
-            raise InvalidTaskDataError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
+            raise TaskValidationError(MENSAGEM_DADOS_TAREFA_INVALIDOS)
 
 
 def _tarefas_validas_sem_duplicidade(tarefas: list[Task]) -> list[Task]:
@@ -127,6 +126,34 @@ def _calcular_minutos_de_conclusao(tarefa: Task) -> float:
     return (tarefa.data_conclusao - tarefa.data_inicio).total_seconds() / 60
 
 
+def _criar_indicador(
+    tarefas: list[Task],
+    tarefas_concluidas: list[Task],
+) -> PriorityIndicator:
+    """Calcula os indicadores de um conjunto de tarefas."""
+    tempos = [
+        _calcular_minutos_de_conclusao(tarefa) for tarefa in tarefas_concluidas
+    ]
+    atrasadas = [
+        tarefa
+        for tarefa in tarefas_concluidas
+        if tarefa.data_conclusao > tarefa.prazo
+    ]
+    return PriorityIndicator(
+        total_tarefas=len(tarefas),
+        total_concluidas=len(tarefas_concluidas),
+        total_pendentes=sum(tarefa.status is Status.PENDENTE for tarefa in tarefas),
+        tempo_medio_conclusao_horas=(
+            sum(tempos) / len(tempos) / 60 if tempos else 0.0
+        ),
+        taxa_atraso_percentual=(
+            round(len(atrasadas) / len(tarefas_concluidas) * 100, 2)
+            if tarefas_concluidas
+            else 0.0
+        ),
+    )
+
+
 def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
     """Analisa tarefas e retorna os indicadores exigidos pela especificação.
 
@@ -137,24 +164,12 @@ def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
         Indicadores consolidados das tarefas e prioridades.
 
     Raises:
-        InvalidTaskDataError: Se uma tarefa violar as regras de data da RN04.
-        NoCompletedTasksError: Se não restar nenhuma tarefa concluída válida.
+        TaskValidationError: Se uma tarefa violar as regras de data.
     """
     lista_de_tarefas = list(tasks) if isinstance(tasks, Iterable) else []
     tarefas_validas = _tarefas_validas_sem_duplicidade(lista_de_tarefas)
     tarefas_concluidas = [
         tarefa for tarefa in tarefas_validas if tarefa.status is Status.CONCLUIDA
-    ]
-    if not tarefas_concluidas:
-        REGISTRADOR.info("Não há tarefas concluídas válidas para análise")
-        raise NoCompletedTasksError(MENSAGEM_NENHUMA_TAREFA_CONCLUIDA)
-
-    tempos_de_conclusao = {
-        id(tarefa): _calcular_minutos_de_conclusao(tarefa)
-        for tarefa in tarefas_concluidas
-    }
-    tarefas_atrasadas = [
-        tarefa for tarefa in tarefas_concluidas if tarefa.data_conclusao > tarefa.prazo
     ]
     indicadores: dict[str, PriorityIndicator] = {}
     for prioridade in Prioridade:
@@ -168,29 +183,17 @@ def analyze_tasks(tasks: list[Task]) -> AnalysisResult:
             for tarefa in tarefas_da_prioridade
             if tarefa.status is Status.CONCLUIDA
         ]
-        indicadores[prioridade.value] = PriorityIndicator(
-            quantidade=len(tarefas_da_prioridade),
-            quantidade_atrasadas=sum(
-                tarefa.data_conclusao > tarefa.prazo
-                for tarefa in tarefas_concluidas_da_prioridade
-            ),
-            tempo_medio_conclusao=(
-                sum(
-                    tempos_de_conclusao[id(tarefa)]
-                    for tarefa in tarefas_concluidas_da_prioridade
-                )
-                / len(tarefas_concluidas_da_prioridade)
-                if tarefas_concluidas_da_prioridade
-                else 0.0
-            ),
+        indicadores[prioridade.value] = _criar_indicador(
+            tarefas_da_prioridade,
+            tarefas_concluidas_da_prioridade,
         )
 
+    indicador_geral = _criar_indicador(tarefas_validas, tarefas_concluidas)
     return AnalysisResult(
-        tempo_medio_conclusao_min=sum(tempos_de_conclusao.values())
-        / len(tarefas_concluidas),
-        taxa_atraso_percentual=round(
-            len(tarefas_atrasadas) / len(tarefas_concluidas) * 100, 2
-        ),
-        quantidade_tarefas=len(tarefas_validas),
+        total_tarefas=indicador_geral.total_tarefas,
+        total_concluidas=indicador_geral.total_concluidas,
+        total_pendentes=indicador_geral.total_pendentes,
+        tempo_medio_conclusao_horas=indicador_geral.tempo_medio_conclusao_horas,
+        taxa_atraso_percentual=indicador_geral.taxa_atraso_percentual,
         indicadores_por_prioridade=indicadores,
     )
