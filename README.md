@@ -342,39 +342,6 @@ Todo código produzido com auxílio de Inteligência Artificial deverá passar p
 
 ---
 
-## Tabela de rastreabilidade do enunciado
-
-O enunciado/PDF é genérico e foi usado apenas como checklist de entregáveis.
-Em qualquer divergência, prevaleceu o contrato específico da especificação
-Fase 1 v1.0.
-
-| Exigência do PDF | Item equivalente na especificação v1.0 | Teste correspondente |
-|---|---|---|
-| Cenário 1 | Seção 13.1; RN01–RN03 e RN07 | `test_acceptance_scenario_one_matches_specification` |
-| Cenário 2 | Seção 13.2; RN04 | `test_scenario_two_raises_for_each_rn04_case` |
-| Cenário 3 | Seção 13.3; RN05 | `test_no_completed_tasks_error_for_empty_input` |
-| Casos de borda | Seções 9.3 e 10.3; RN06 e RN08 | testes parametrizados e testes de duplicidade/prioridade |
-| Cálculos | Seções 7–10; RN02, RN03 e RN07 | cenário 1 e `test_delay_rate_is_rounded_to_two_decimal_places` |
-| Tipagem e estruturas | Seções 3–5 e 15–16 | `test_acceptance_scenario_one_matches_specification` |
-
----
-
-## Entregáveis da Fase 2
-
-- [Relatório técnico em Markdown](./docs/phase2_report.md)
-- [Relatório técnico em PDF](./docs/relatorio_tecnico_fase2.pdf)
-- [Evidência da execução do pytest](./docs/evidence_pytest.png)
-- [Evidência da árvore local](./docs/evidence_tree.png)
-- [Evidência do Pull Request #1](./docs/evidence_pull_request.png)
-
-Pull Request aberto:
-
-<https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/pull/1>
-
-O vídeo de apresentação não está incluído neste escopo.
-
----
-
 ## Autor
 
 **Bruno dos Santos**  
