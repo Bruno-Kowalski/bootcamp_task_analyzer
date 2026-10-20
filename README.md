@@ -1,5 +1,7 @@
 # TaskAnalyzer
 
+[![CI](https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/Bruno-Kowalski/bootcamp_task_analyzer/actions/workflows/ci.yml)
+
 Projeto acadêmico desenvolvido para a disciplina **BootCamp III**, com foco em **Specification-Driven Development (SDD)** e desenvolvimento assistido por Inteligência Artificial.
 
 O **TaskAnalyzer** tem como objetivo analisar um conjunto de tarefas e gerar indicadores de produtividade a partir de regras previamente definidas em uma especificação funcional.
@@ -39,10 +41,21 @@ Toda implementação futura deverá respeitar simultaneamente esses dois documen
 
 ```text
 bootcamp_task_analyzer/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
 ├── README.md
 ├── CONTEXT_RULES.md
 ├── specs/
+│   ├── requirements.yaml
+│   ├── system_design_document.pdf
 │   └── task_analyzer_spec.md
+├── docs/
+│   └── artefatos e relatório técnico da Fase 2
+├── requirements.txt
 ├── src/
 │   └── task_analyzer.py
 └── tests/
@@ -58,6 +71,12 @@ bootcamp_task_analyzer/
 | `README.md` | Apresentação geral do projeto e orientação sobre o repositório. |
 | `CONTEXT_RULES.md` | Regras persistentes de governança e desenvolvimento assistido por IA. |
 | `specs/task_analyzer_spec.md` | Especificação SDD e fonte de verdade do comportamento funcional do sistema. |
+| `specs/requirements.yaml` | Representação estruturada da especificação v1.0 e sua rastreabilidade. |
+| `specs/system_design_document.pdf` | Documento de projeto exportado da especificação, fornecido separadamente. |
+| `docs/` | Relatório técnico e evidências da Fase 2. |
+| `.github/workflows/ci.yml` | Workflow de integração contínua para execução dos testes. |
+| `Dockerfile` | Imagem isolada para execução do test harness. |
+| `docker-compose.yml` | Serviço para execução dos testes em container. |
 | `src/task_analyzer.py` | Arquivo destinado à implementação principal do TaskAnalyzer. |
 | `tests/test_harness.py` | Test harness automatizado derivado do contrato SDD. |
 
@@ -110,7 +129,7 @@ python -m pip install -r requirements.txt
 Para executar o test harness completo:
 
 ```powershell
-python -m pytest -v
+python -m pytest tests/test_harness.py -v
 ```
 
 O resultado esperado é:
@@ -118,6 +137,29 @@ O resultado esperado é:
 ```text
 5 passed
 ```
+
+### 5. Executar com Docker
+
+Para construir a imagem:
+
+```powershell
+docker build -t bootcamp-task-analyzer:local .
+```
+
+Para executar os testes diretamente na imagem:
+
+```powershell
+docker run --rm bootcamp-task-analyzer:local
+```
+
+Para executar o serviço de testes pelo Docker Compose:
+
+```powershell
+docker compose run --rm tests
+```
+
+O arquivo `.dockerignore` impede que o `.env`, caches, o ambiente virtual,
+documentação e metadados do Git sejam incluídos na imagem.
 
 Os testes estão em [tests/test_harness.py](./tests/test_harness.py) e cobrem os
 cenários de aceite, as regras de negócio e os casos de borda definidos na
@@ -336,9 +378,9 @@ Todo código produzido com auxílio de Inteligência Artificial deverá passar p
 
 ## Status do Projeto
 
-**Etapa atual:** implementação da Fase 1 v1.0 e validação automatizada do contrato SDD.
+**Etapa atual:** Fase 3 — automação de CI/CD, containerização e preparação para homologação final.
 
-**Status do build:** `pytest` aprovado após a implementação da Fase 1.
+**Status do build:** testes locais aprovados; a execução no GitHub Actions depende do push da branch e a validação Docker depende do daemon Docker disponível.
 
 ---
 
