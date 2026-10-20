@@ -1,0 +1,220 @@
+metadados:
+  projeto: TaskAnalyzer
+  versao_especificacao: "1.0"
+  fonte: specs/task_analyzer_spec.md
+
+entradas:
+  tarefa:
+    tipo: Task
+    obrigatoria: true
+    campos:
+      id_tarefa:
+        tipo: int
+        obrigatorio: true
+        restricoes:
+          - maior que zero
+          - único dentro da coleção analisada
+      data_criacao:
+        tipo: datetime
+        obrigatorio: true
+        restricoes:
+          - timezone-aware
+          - UTC
+      data_inicio:
+        tipo: datetime | None
+        obrigatorio: status concluida; opcional para status pendente ou cancelada
+        restricoes:
+          - quando informada, timezone-aware em UTC
+      data_conclusao:
+        tipo: datetime | None
+        obrigatorio: status concluida; opcional para status pendente ou cancelada
+        restricoes:
+          - quando informada, timezone-aware em UTC
+      prazo:
+        tipo: datetime
+        obrigatorio: true
+        restricoes:
+          - timezone-aware
+          - UTC
+      prioridade:
+        tipo: Prioridade
+        obrigatorio: true
+        restricoes:
+          - um dos valores do enum Prioridade
+      status:
+        tipo: Status
+        obrigatorio: true
+        restricoes:
+          - um dos valores do enum Status
+  colecao:
+    campo: tasks
+    tipo: list[Task]
+    obrigatorio: true
+
+enums:
+  Prioridade:
+    valores:
+      - baixa
+      - media
+      - alta
+  Status:
+    valores:
+      - concluida
+      - pendente
+      - cancelada
+
+saidas:
+  AnalysisResult:
+    campos:
+      total_tarefas:
+        tipo: int
+        descricao: quantidade de tarefas válidas consideradas pelo analisador
+      total_concluidas:
+        tipo: int
+        descricao: quantidade de tarefas concluídas válidas
+      total_pendentes:
+        tipo: int
+        descricao: quantidade de tarefas pendentes válidas
+      tempo_medio_conclusao_horas:
+        tipo: float
+        descricao: média dos tempos de conclusão das tarefas concluídas válidas, em horas
+      taxa_atraso_percentual:
+        tipo: float
+        descricao: percentual de tarefas concluídas válidas concluídas após o prazo
+      indicadores_por_prioridade:
+        tipo: dict[str, PriorityIndicator]
+        descricao: indicadores agrupados pelas prioridades presentes nas tarefas válidas
+  PriorityIndicator:
+    campos:
+      total_tarefas:
+        tipo: int
+      total_concluidas:
+        tipo: int
+      total_pendentes:
+        tipo: int
+      tempo_medio_conclusao_horas:
+        tipo: float
+      taxa_atraso_percentual:
+        tipo: float
+    restricoes:
+      - somente prioridades com pelo menos uma tarefa válida aparecem
+      - quando não houver tarefa concluída válida, médias e taxa são 0.0
+
+excecoes:
+  - nome: TaskValidationError
+    quando: uma tarefa viola as regras de datas inconsistentes da RN04
+    mensagem: Datas inválidas ou inconsistentes
+  - nome: nenhuma exceção para ausência de tarefas concluídas válidas
+    quando: não existir tarefa concluída válida
+    observacao: retorna indicadores com médias e taxa iguais a 0.0
+
+regras_negocio:
+  - id: RN01
+    titulo: Consideração das tarefas
+    descricao: >-
+      Somente tarefas concluídas participam dos cálculos de tempo de conclusão,
+      tempo médio, identificação de atraso e taxa de atraso. Tarefas pendentes
+      ou canceladas podem ser contabilizadas nos totais e indicadores de
+      quantidade, mas não participam dos cálculos de tempo ou atraso.
+    origem: Seção 6, RN01
+    testes:
+      - test_analise_calcula_totais_medias_e_atrasos
+      - test_entrada_sem_concluidas_retorna_zeros
+  - id: RN02
+    titulo: Cálculo do tempo de conclusão
+    descricao: >-
+      Para cada tarefa concluída válida, o tempo de conclusão é a diferença
+      entre data_conclusao e data_inicio, calculada em minutos pela fórmula
+      (data_conclusao - data_inicio).total_seconds() / 60, com resultado float
+      expresso em horas nos indicadores.
+    origem: Seção 6, RN02
+    testes:
+      - test_analise_calcula_totais_medias_e_atrasos
+  - id: RN03
+    titulo: Identificação de atraso
+    descricao: >-
+      Uma tarefa concluída válida está atrasada quando data_conclusao > prazo.
+      Uma conclusão exatamente no prazo não está atrasada, e tarefas pendentes
+      ou canceladas nunca são atrasadas.
+    origem: Seção 6, RN03
+    testes:
+      - test_analise_calcula_totais_medias_e_atrasos
+  - id: RN04
+    titulo: Datas inconsistentes
+    descricao: >-
+      Status concluida exige data_inicio e data_conclusao; datas preenchidas
+      devem respeitar sua ordem; e toda data obrigatória deve possuir fuso UTC.
+      Violações lançam TaskValidationError com a mensagem exata definida no
+      contrato.
+    origem: Seção 6, RN04
+    testes:
+      - test_data_inconsistente_gera_erro
+  - id: RN05
+    titulo: Ausência de tarefas concluídas válidas
+    descricao: >-
+      Quando não existir tarefa concluída válida, médias e taxa de atraso
+      retornam 0.0.
+    origem: Seção 6, RN05
+    testes:
+      - test_entrada_sem_concluidas_retorna_zeros
+      - test_media_da_prioridade_sem_concluidas_e_zero
+  - id: RN06
+    titulo: Fuso horário
+    descricao: >-
+      Todo campo de data não nulo deve ser datetime timezone-aware em UTC.
+      Datetimes sem fuso ou associados a fuso diferente de UTC são inválidos.
+    origem: Seção 6, RN06
+    testes:
+      - sem cobertura
+  - id: RN07
+    titulo: Arredondamento
+    descricao: >-
+      A taxa de atraso percentual é arredondada para duas casas decimais. O
+      tempo médio de conclusão em horas é float e não possui arredondamento
+      obrigatório.
+    origem: Seção 6, RN07
+    testes:
+      - test_analise_calcula_totais_medias_e_atrasos
+  - id: RN08
+    titulo: Identificador de tarefa duplicado
+    descricao: >-
+      Cada id_tarefa deve ser único na coleção. Quando houver duplicidade,
+      todas as tarefas com o identificador duplicado são inválidas e não
+      participam de cálculos ou da contagem de total_tarefas.
+    origem: Seção 6, RN08
+    testes:
+      - sem cobertura
+
+cenarios_aceite:
+  "13.1":
+    titulo: Análise realizada com sucesso
+    dado: conjunto com tarefas válidas concluídas e pendentes
+    quando: analyze_tasks(tasks) for executada
+    entao: >-
+      retorna AnalysisResult com total_tarefas 3, total_concluidas 2,
+      total_pendentes 1, tempo_medio_conclusao_horas 2.0, taxa_atraso_percentual
+      50.00 e indicadores por prioridade conforme a especificação.
+    origem: Seção 13, Cenário 1
+    testes:
+      - test_analise_calcula_totais_medias_e_atrasos
+  "13.2":
+    titulo: Tarefas com dados inconsistentes
+    dado: conjunto com tarefa concluída válida e uma ou mais tarefas inconsistentes
+    quando: o TaskAnalyzer processar o conjunto
+    entao: >-
+      lança TaskValidationError com a mensagem Datas inválidas ou inconsistentes
+      e não retorna análise parcial.
+    origem: Seção 13, Cenário 2
+    testes:
+      - test_data_inconsistente_gera_erro
+  "13.3":
+    titulo: Ausência de tarefas concluídas válidas
+    dado: conjunto sem tarefa concluída válida
+    quando: o TaskAnalyzer for executado
+    entao: >-
+      retorna AnalysisResult com total_concluidas 0,
+      tempo_medio_conclusao_horas 0.0 e taxa_atraso_percentual 0.0.
+    origem: Seção 13, Cenário 3
+    testes:
+      - test_entrada_sem_concluidas_retorna_zeros
+      - test_media_da_prioridade_sem_concluidas_e_zero
